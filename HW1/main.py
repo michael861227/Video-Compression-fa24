@@ -60,8 +60,8 @@ def convert_rgb_to_yuv_ycbcr(image_path):
 
 
 if __name__ == '__main__':
-    # Path to the uploaded image
-    image_path = 'lena.png'  # Replace this with your local image path
+    # Path to the input image
+    image_path = 'lena.png'  
     
     # Call the function to convert and generate images
     generated_images = convert_rgb_to_yuv_ycbcr(image_path)
