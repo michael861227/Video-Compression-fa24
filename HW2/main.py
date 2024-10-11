@@ -1,118 +1,158 @@
-import numpy as np
-import cv2
-import matplotlib.pyplot as plt
-import time
 import os
+import numpy as np
+import matplotlib.pyplot as plt
+from PIL import Image
+import time
+import cv2
+
+def load_image(image_path):
+    """Load an image and convert it to grayscale."""
+    image = Image.open(image_path).convert('L')
+    return np.array(image)
 
 def dct_2d(image):
+    """Compute the 2D DCT of an image using numpy's optimized functions."""
     M, N = image.shape
-    dct = np.zeros((M, N))
-    for u in range(M):
-        for v in range(N):
-            sum = 0
-            for x in range(M):
-                for y in range(N):
-                    sum += image[x, y] * np.cos((2*x+1)*u*np.pi/(2*M)) * np.cos((2*y+1)*v*np.pi/(2*N))
-            cu = 1/np.sqrt(2) if u == 0 else 1
-            cv = 1/np.sqrt(2) if v == 0 else 1
-            dct[u, v] = 2 * cu * cv * sum / np.sqrt(M*N)
-    return dct
+    
+    # Create the cosine transform matrix
+    x = np.arange(M)
+    y = np.arange(N)
+    u = x.reshape(-1, 1)
+    v = y.reshape(-1, 1)
+    
+    cos_u = np.sqrt(2 / M) * np.cos((2*x + 1) * u * np.pi / (2*M))
+    cos_v = np.sqrt(2 / N) * np.cos((2*y + 1) * v * np.pi / (2*N))
+    
+    cos_u[0] /= np.sqrt(2)
+    cos_v[0] /= np.sqrt(2)
+    
+    # Compute DCT using matrix multiplication
+    dct_matrix = cos_u @ image @ cos_v.T
+    
+    return dct_matrix
 
-def idct_2d(dct):
-    M, N = dct.shape
-    image = np.zeros((M, N))
-    for x in range(M):
-        for y in range(N):
-            sum = 0
-            for u in range(M):
-                for v in range(N):
-                    cu = 1/np.sqrt(2) if u == 0 else 1
-                    cv = 1/np.sqrt(2) if v == 0 else 1
-                    sum += cu * cv * dct[u, v] * np.cos((2*x+1)*u*np.pi/(2*M)) * np.cos((2*y+1)*v*np.pi/(2*N))
-            image[x, y] = 2 * sum / np.sqrt(M*N)
-    return image
+def idct_2d(coefficients):
+    """Compute the 2D IDCT of coefficients using numpy's optimized functions."""
+    M, N = coefficients.shape
+    
+    # Create the cosine transform matrix
+    x = np.arange(M)
+    y = np.arange(N)
+    u = x.reshape(-1, 1)
+    v = y.reshape(-1, 1)
+    
+    cos_u = np.sqrt(2 / M) * np.cos((2*x + 1) * u * np.pi / (2*M))
+    cos_v = np.sqrt(2 / N) * np.cos((2*y + 1) * v * np.pi / (2*N))
+    
+    cos_u[0] /= np.sqrt(2)
+    cos_v[0] /= np.sqrt(2)
+    
+    # Compute IDCT using matrix multiplication
+    reconstructed = cos_u.T @ coefficients @ cos_v
+    
+    return reconstructed
 
-def dct_1d(vector):
-    N = len(vector)
-    dct = np.zeros(N)
-    for k in range(N):
-        sum = 0
-        for n in range(N):
-            sum += vector[n] * np.cos((2*n+1)*k*np.pi/(2*N))
-        ck = 1/np.sqrt(2) if k == 0 else 1
-        dct[k] = ck * sum * np.sqrt(2/N)
-    return dct
+def dct_1d(signal):
+    """Compute the 1D DCT of a signal using numpy's optimized functions."""
+    N = len(signal)
+    n = np.arange(N)
+    k = n.reshape(-1, 1)
+    
+    M = np.sqrt(2 / N) * np.cos((2*n + 1) * k * np.pi / (2*N))
+    M[0] /= np.sqrt(2)
+    
+    return M @ signal
+
+def idct_1d(coefficients):
+    """Compute the 1D IDCT of coefficients using numpy's optimized functions."""
+    N = len(coefficients)
+    n = np.arange(N)
+    k = n.reshape(-1, 1)
+    
+    M = np.sqrt(2 / N) * np.cos((2*n + 1) * k * np.pi / (2*N))
+    M[0] /= np.sqrt(2)
+    
+    return M.T @ coefficients
 
 def dct_2d_using_1d(image):
-    M, N = image.shape
-    temp = np.zeros((M, N))
-    result = np.zeros((M, N))
-    
-    # Apply 1D-DCT to rows
-    for i in range(M):
-        temp[i] = dct_1d(image[i])
-    
-    # Apply 1D-DCT to columns
-    for j in range(N):
-        result[:, j] = dct_1d(temp[:, j])
-    
-    return result
+    """Compute 2D DCT using two 1D DCTs."""
+    return dct_1d(dct_1d(image.T).T)
 
-def visualize_dct(dct_coeffs, title, filename):
-    log_coeffs = np.log(np.abs(dct_coeffs) + 1)
+def idct_2d_using_1d(coefficients):
+    """Compute 2D IDCT using two 1D IDCTs."""
+    return idct_1d(idct_1d(coefficients.T).T)
+
+def cv2_dct_2d(image):
+    """Compute the 2D DCT using OpenCV."""
+    return cv2.dct(np.float32(image))
+
+def cv2_idct_2d(coefficients):
+    """Compute the 2D IDCT using OpenCV."""
+    return cv2.idct(coefficients)
+
+def psnr(original, reconstructed):
+    """Calculate the PSNR between original and reconstructed images."""
+    mse = np.mean((original - reconstructed) ** 2)
+    if mse == 0:
+        return float('inf')
+    max_pixel = 255.0
+    return 20 * np.log10(max_pixel / np.sqrt(mse))
+
+def visualize_and_save_dct_coefficients(coefficients, output_path):
+    """Visualize the DCT coefficients in the log domain and save the image."""
+    log_coefficients = np.log1p(np.abs(coefficients))
     plt.figure(figsize=(10, 8))
-    plt.imshow(log_coeffs, cmap='gray')
-    plt.title(title)
-    plt.colorbar()
-    plt.savefig(filename)
+    plt.imshow(log_coefficients, cmap='viridis')
+    plt.colorbar(label='Log magnitude')
+    plt.title("DCT Coefficients (Log Domain)")
+
+    plt.tight_layout()
+    plt.savefig(output_path)
     plt.close()
 
-def calculate_psnr(original, reconstructed):
-    mse = np.mean((original - reconstructed) ** 2)
-    max_pixel = 255.0
-    psnr = 20 * np.log10(max_pixel / np.sqrt(mse))
-    return psnr
+def save_image(image, path):
+    """Save the image to the specified path."""
+    Image.fromarray(np.uint8(np.clip(image, 0, 255))).save(path)
 
-def reconstruct_and_evaluate(dct_coeffs, original_image, method):
-    reconstructed = idct_2d(dct_coeffs)
-    cv2.imwrite(f'output/reconstructed_{method}.png', reconstructed)
-    psnr = calculate_psnr(original_image, reconstructed)
-    return reconstructed, psnr
-
-def process_image(image, dct_function, method):
+def process_image(image, dct_function, idct_function, method_name):
+    """Process an image using the given DCT and IDCT functions."""
     start_time = time.time()
-    dct_coeffs = dct_function(image)
+    dct_coefficients = dct_function(image)
+    reconstructed_image = idct_function(dct_coefficients)
     processing_time = time.time() - start_time
     
-    visualize_dct(dct_coeffs, f'{method}-DCT Coefficients', f'output/{method}_dct_coeffs.png')
-    reconstructed, psnr = reconstruct_and_evaluate(dct_coeffs, image, method)
+    psnr_value = psnr(image, reconstructed_image)
     
-    return dct_coeffs, reconstructed, psnr, processing_time
+    visualize_and_save_dct_coefficients(dct_coefficients, os.path.join('output', f"dct_coefficients_{method_name}.png"))
+    save_image(reconstructed_image, os.path.join('output', f"reconstructed_{method_name}.png"))
+    
+    return psnr_value, processing_time
+
+def print_results(method_name, psnr_value, processing_time):
+    """Print the results for a given method."""
+    print(f"Results for {method_name}:")
+    print(f"  PSNR: {psnr_value:.2f} dB")
+    print(f"  Processing time: {processing_time:.4f} seconds")
+    print()
 
 def main():
     if not os.path.exists('output'):
         os.makedirs('output')
 
-    image_path = 'lena.png'
-    if not os.path.exists(image_path):
-        raise FileNotFoundError(f"Image file '{image_path}' not found.")
+    # Load grayscale image
+    image = load_image('lena.png')
 
-    image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
-    if image is None:
-        raise ValueError(f"Failed to read image from '{image_path}'.")
-    
+    # Process image using 2D-DCT
+    psnr_2d, time_2d = process_image(image, dct_2d, idct_2d, "2d")
+    print_results("2D-DCT", psnr_2d, time_2d)
 
-    # 2D-DCT
-    _, _, psnr_2d, time_2d_dct = process_image(image, dct_2d, '2d')
-    
-    # Two 1D-DCT
-    _, _, psnr_1d, time_1d_dct = process_image(image, dct_2d_using_1d, '1d')
-    
-    # Print results
-    print(f"PSNR for 2D-DCT: {psnr_2d:.2f} dB")
-    print(f"PSNR for 1D-DCT: {psnr_1d:.2f} dB")
-    print(f"Runtime for 2D-DCT: {time_2d_dct:.4f} seconds")
-    print(f"Runtime for two 1D-DCT: {time_1d_dct:.4f} seconds")
+    # Process image using two 1D-DCT
+    psnr_1d, time_1d = process_image(image, dct_2d_using_1d, idct_2d_using_1d, "1d")
+    print_results("Two 1D-DCT", psnr_1d, time_1d)
+
+    # Process image using OpenCV DCT (for comparison)
+    psnr_cv2, time_cv2 = process_image(image, cv2_dct_2d, cv2_idct_2d, "cv2")
+    print_results("OpenCV DCT", psnr_cv2, time_cv2)
 
 if __name__ == "__main__":
     main()
