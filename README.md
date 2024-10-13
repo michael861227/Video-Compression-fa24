@@ -27,7 +27,7 @@ See more [Video Compression](https://timetable.nycu.edu.tw/?r=main/crsoutline&Ac
 | Programming Assignment |         Code          |
 | :--------------------: | :-------------------: |
 |  **Color Transform**   | :link: [Link](./HW1/) |
-|                        | :link: [Link](./HW2/) |
+|       **2D-DCT**       | :link: [Link](./HW2/) |
 |                        | :link: [Link](./HW3/) |
 |                        | :link: [Link](./HW4/) |
 

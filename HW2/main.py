@@ -10,6 +10,34 @@ def load_image(image_path):
     image = Image.open(image_path).convert('L')
     return np.array(image)
 
+def origin_dct_2d(image):
+    M, N = image.shape
+    dct_result = np.zeros((M, N))
+    x_vals = np.arange(M).reshape(-1,1)
+    y_vals = np.arange(N).reshape(1, -1)
+    for u in range(M):
+        for v in range(N):
+            sum = np.sum(image * np.cos((2*x_vals+1)*u*np.pi/(2*M)) * np.cos((2*y_vals+1)*v*np.pi/(2*N)))
+            cu = np.sqrt(2/M) * np.sqrt(1/2) if u == 0 else np.sqrt(2/M)
+            cv = np.sqrt(2 / N) * np.sqrt(1 / 2) if v == 0 else np.sqrt(2 / N)
+            dct_result[u, v] = cu * cv * sum
+    return dct_result
+
+
+def origin_idct_2d(image):
+    M, N = image.shape
+    recon_result = np.zeros((M, N))
+    # Multiply by cu and cv here first
+    cu = np.where(np.arange(M) == 0, np.sqrt(2 / M) * np.sqrt(1 / 2), np.sqrt(2 / M)).reshape(-1, 1)
+    cv = np.where(np.arange(N) == 0, np.sqrt(2 / N) * np.sqrt(1 / 2), np.sqrt(2 / N)).reshape(1, -1)
+    u_vals = np.arange(M).reshape(-1, 1)
+    v_vals = np.arange(N).reshape(1, -1)
+    for x in range(M):
+        for y in range(N):
+            sum = np.sum(cu * cv * image * np.cos((2*x+1)*u_vals*np.pi/(2*M)) * np.cos((2*y+1)*v_vals*np.pi/(2*N)))
+            recon_result[x, y] = sum
+    return recon_result
+
 def dct_2d(image):
     """Compute the 2D DCT of an image using numpy's optimized functions."""
     M, N = image.shape
