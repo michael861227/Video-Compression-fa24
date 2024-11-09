@@ -29,7 +29,7 @@ See more [Video Compression](https://timetable.nycu.edu.tw/?r=main/crsoutline&Ac
 |         **Color Transform**          | :link: [Link](./HW1/) |
 |              **2D-DCT**              | :link: [Link](./HW2/) |
 | **Motion Estimation & Compensation** | :link: [Link](./HW3/) |
-|                                      | :link: [Link](./HW4/) |
+|          **Entropy Coding**          | :link: [Link](./HW4/) |
 
 <Br>
 
