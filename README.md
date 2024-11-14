@@ -36,5 +36,5 @@ See more [Video Compression](https://timetable.nycu.edu.tw/?r=main/crsoutline&Ac
 ## Usage
 
 ```shell=
-git@github.com:michael861227/Video-Compression-fa24.git
+git clone git@github.com:michael861227/Video-Compression-fa24.git
 ```
